@@ -1,0 +1,37 @@
+diff --git a/dist/node/serve-CEVH7KNu.js b/dist/node/serve-CEVH7KNu.js
+index eb77f2852d108df58e03959bf1d43e60c3089152..4ff4ebab05f181a098a8c6043d8333992a7aa99a 100644
+--- a/dist/node/serve-CEVH7KNu.js
++++ b/dist/node/serve-CEVH7KNu.js
+@@ -38112,6 +38112,24 @@ function getGitTimestamp(file) {
+   });
+ }
+ 
++function processIncludesRelativePath(srcDir, includePath, src) {
++    const relativeRE = /\((\.{1,2}.*)\)/g
++    return src.replace(relativeRE, (m, p1) => {
++        try {
++            const resolvedSrcDir = path.resolve(srcDir)
++            // use platform-specific file separator to get include file's dir
++            const includeFileDir = includePath.substring(0, includePath.lastIndexOf(path.sep) + 1)
++            // get relative path to project root
++            const p1Path = path.resolve(includeFileDir, p1).substring(resolvedSrcDir.length)
++            // replace win32's separator to /
++            const p1PathInVite = p1Path.replace(path.win32.sep, '/')
++            return '(' + p1PathInVite + ')'
++        } catch {
++            return m
++        }
++    })
++}
++
+ function processIncludes(srcDir, src, file, includes) {
+   const includesRE = /<!--\s*@include:\s*(.*?)\s*-->/g;
+   const rangeRE = /\{(\d*),(\d*)\}$/;
+@@ -38134,6 +38152,7 @@ function processIncludes(srcDir, src, file, includes) {
+       } else {
+         content = matter$1(content).content;
+       }
++      content = processIncludesRelativePath(srcDir, includePath, content)
+       includes.push(slash(includePath));
+       return processIncludes(srcDir, content, includePath, includes);
+     } catch (error) {
